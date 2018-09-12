@@ -12,3 +12,4 @@ venv/
 *log
 static_files/
 data/
+data_manual/

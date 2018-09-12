@@ -13,6 +13,4 @@ scikit_learn
 scipy
 celery
 flower
-channels
-asgi_redis
 dateparser

@@ -10,8 +10,9 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
-    'websocket_connection.apps.WebsocketConnectionConfig'
-    'channels',
+    'info_data.apps.InfoDataConfig',
+    'arbitrage.apps.ArbitrageConfig',
+    'data_processor.apps.DataProcessorConfig',
     'profiles.apps.ProfilesConfig',
     'shallow.apps.ShallowConfig',
     'django.contrib.admin',
@@ -115,18 +116,6 @@ CELERY_TIMEZONE = 'Asia/Yekaterinburg'
 CELERY_RESULT_BACKEND = 'rpc://'
 
 AUTH_USER_MODEL = 'profiles.Profile'
-
-ASGI_APPLICATION = 'binance_ml.routing.application'
-
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'asgi_redis.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [('localhost', 6379)],
-        },
-        'ROUTING': 'binance_ml.routing.channel_routing',
-    }
-}
 
 try:
     from binance_ml.local_settings import *
