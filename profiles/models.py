@@ -18,7 +18,7 @@ class BinanceKey(models.Model):
 class TelegramBotSettings(models.Model):
     name = models.CharField(max_length=64)
     token = models.CharField(max_length=64)
-    chat = models.ManyToManyField('TelegramChatIds')
+    chat = models.ManyToManyField('TelegramChatIds', blank=True)
     proxy = models.CharField(max_length=25, blank=True, null=True)
     def __str__(self):
         return '%s' % self.name

@@ -113,8 +113,6 @@ LOGIN_REDIRECT_URL = '/'
 
 CELERY_TIMEZONE = 'Asia/Yekaterinburg'
 
-CELERY_RESULT_BACKEND = 'rpc://'
-
 AUTH_USER_MODEL = 'profiles.Profile'
 
 try:

@@ -1,12 +1,12 @@
 import json
 
 
-symbol_info = json.load(open('../json/symbol_info.json'))
-stepsize_info = json.load(open('../json/stepsize_info.json'))
-usdt_array = json.load(open('../json/tree/usdt_tree.json'))
-btc_array = json.load(open('../json/tree/btc_tree.json'))
-eth_array = json.load(open('../json/tree/eth_tree.json'))
-bnb_array = json.load(open('../json/tree/bnb_tree.json'))
+symbol_info = json.load(open('arbitrage/json/symbol_info.json'))
+stepsize_info = json.load(open('arbitrage/json/stepsize_info.json'))
+usdt_array = json.load(open('arbitrage/json/tree/usdt_tree.json'))
+btc_array = json.load(open('arbitrage/json/tree/btc_tree.json'))
+eth_array = json.load(open('arbitrage/json/tree/eth_tree.json'))
+bnb_array = json.load(open('arbitrage/json/tree/bnb_tree.json'))
 
 btc_eth_cross = []
 btc_bnb_cross = []
@@ -68,25 +68,25 @@ for i in btc_eth_bnb_cross:
             btc_eth_bnb_usdt_cross.append(i)
 
 
-with open('../json/cross/btc_eth_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/btc_eth_cross.json', 'w') as outfile:
     json.dump(btc_eth_cross, outfile)
-with open('../json/cross/btc_bnb_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/btc_bnb_cross.json', 'w') as outfile:
     json.dump(btc_bnb_cross, outfile)
-with open('../json/cross/btc_usdt_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/btc_usdt_cross.json', 'w') as outfile:
     json.dump(btc_usdt_cross, outfile)
-with open('../json/cross/eth_bnb_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/eth_bnb_cross.json', 'w') as outfile:
     json.dump(eth_bnb_cross, outfile)
-with open('../json/cross/eth_usdt_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/eth_usdt_cross.json', 'w') as outfile:
     json.dump(eth_usdt_cross, outfile)
-with open('../json/cross/bnb_usdt_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/bnb_usdt_cross.json', 'w') as outfile:
     json.dump(bnb_usdt_cross, outfile)
-with open('../json/cross/btc_eth_bnb_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/btc_eth_bnb_cross.json', 'w') as outfile:
     json.dump(btc_eth_bnb_cross, outfile)
-with open('../json/cross/btc_eth_usdt_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/btc_eth_usdt_cross.json', 'w') as outfile:
     json.dump(btc_eth_usdt_cross, outfile)
-with open('../json/cross/btc_bnb_usdt_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/btc_bnb_usdt_cross.json', 'w') as outfile:
     json.dump(btc_bnb_usdt_cross, outfile)
-with open('../json/cross/eth_bnb_usdt_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/eth_bnb_usdt_cross.json', 'w') as outfile:
     json.dump(eth_bnb_usdt_cross, outfile)
-with open('../json/cross/btc_eth_bnb_usdt_cross.json', 'w') as outfile:
+with open('arbitrage/json/cross/btc_eth_bnb_usdt_cross.json', 'w') as outfile:
     json.dump(btc_eth_bnb_usdt_cross, outfile)
