@@ -16,3 +16,4 @@ flower
 dateparser
 python-telegram-bot
 pysocks
+python-binance
