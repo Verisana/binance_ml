@@ -33,4 +33,3 @@ def delete_all_entries():
 
 delete_all_entries()
 create_all_symbols()
-cross_tree_apply()
