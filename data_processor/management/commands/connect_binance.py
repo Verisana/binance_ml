@@ -57,7 +57,7 @@ class Command(BaseCommand):
             symbol.high_pr_24h = Decimal(msg['h'])
             symbol.low_pr_24h = Decimal(msg['l'])
             symbol.save()
-            self.usdt_tunnel_executor()
+        self.usdt_tunnel_executor()
 
     def usdt_tunnel_executor(self):
         ept = ExecutePriceTunnel()
