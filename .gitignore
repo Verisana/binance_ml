@@ -13,3 +13,4 @@ venv/
 static_files/
 data/
 data_manual/
+arbitrage/json/
