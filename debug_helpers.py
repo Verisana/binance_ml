@@ -28,7 +28,6 @@ diff_key = bm.start_depth_socket('BNBBTC', process_message)
 from arbitrage.algo_bot import BinancePriceTunnel, ExecutePriceTunnel
 ept = ExecutePriceTunnel()
 res = ept.check_usdt_simple()
-usdt_tunnel_executor()
 all = AllRealTimeTicker.objects.all()
 
 tel_bot_set = TelegramBotSettings.objects.all()
@@ -40,4 +39,30 @@ telegram_bot.send_message(chat_id[0].chat_id, message)
 
 #celery flower -A binance_ml --loglevel=INFO
 #celery -A binance_ml worker -l info --purge
-pp = telegram.utils.request.Request(proxy_url='https://10.0.2.2:1080')
+
+
+'''
+nohup python3 /home/leo/binance_ml/manage.py connect_binance --type=all_ticker &
+nohup python3 /home/leo/binance_ml/manage.py connect_binance --type=user_info &
+ps -aux | grep python3
+'''
+
+'''
+usdt_array = json.load(open('arbitrage/json/tree/usdt_tree.json'))
+btc_array = json.load(open('arbitrage/json/tree/btc_tree.json'))
+eth_array = json.load(open('arbitrage/json/tree/eth_tree.json'))
+bnb_array = json.load(open('arbitrage/json/tree/bnb_tree.json'))
+
+btc_eth_cross = json.load(open('arbitrage/json/cross/btc_eth_cross.json'))
+btc_bnb_cross = json.load(open('arbitrage/json/cross/btc_bnb_cross.json'))
+eth_bnb_cross = json.load(open('arbitrage/json/cross/eth_bnb_cross.json'))
+btc_eth_bnb_cross = json.load(open('arbitrage/json/cross/btc_eth_bnb_cross.json'))
+btc_eth_usdt_cross = json.load(open('arbitrage/json/cross/btc_eth_usdt_cross.json'))
+btc_bnb_usdt_cross = json.load(open('arbitrage/json/cross/btc_bnb_usdt_cross.json'))
+eth_bnb_usdt_cross = json.load(open('arbitrage/json/cross/eth_bnb_usdt_cross.json'))
+btc_eth_bnb_usdt_cross = json.load(open('arbitrage/json/cross/btc_eth_bnb_usdt_cross.json'))
+
+btc_usdt_cross = json.load(open('arbitrage/json/cross/btc_usdt_cross.json'))
+eth_usdt_cross = json.load(open('arbitrage/json/cross/eth_usdt_cross.json'))
+bnb_usdt_cross = json.load(open('arbitrage/json/cross/bnb_usdt_cross.json'))
+'''

@@ -1,12 +1,15 @@
 from decimal import *
 from collections import namedtuple
 import json
+from binance.client import Client
 from info_data.models import AllRealTimeTicker
+from arbitrage.models import BotSettings, OpenedDeals
+import telegram
 
 
 class BinancePriceTunnel:
     def __init__(self):
-        pass
+        self.bot = BotSettings.objects.all()[0]
 
     def pay_fee(self, amount):
         fee = Decimal('0.001')
@@ -29,6 +32,7 @@ class BinancePriceTunnel:
                                                 'base_price',
                                                 'symbol_tuple',
                                                 'reverse',
+                                                'price_info',
                                                 ])
         symbol_tuple = (base_key, key_1, key_2)
         #askPrice - red - lowest_buy
@@ -56,6 +60,12 @@ class BinancePriceTunnel:
 
         invest_amount = qty_final * base_price
 
+        if not self.bot.stop_qty >= invest_amount:
+            #should_invest = invest_amount
+            #qty_max_available = qty_final
+            invest_amount = self.bot.stop_qty
+            qty_final = invest_amount / base_price
+
         temp_return = self.pay_fee(qty_final)
 
         if not reverse:
@@ -69,6 +79,7 @@ class BinancePriceTunnel:
 
         profit_abs = return_amount - invest_amount
         roi = ((return_amount - invest_amount) / invest_amount) * 100
+        price_info = (base_price, price_1, price_2)
 
         result = result_template(profit_abs,
                                  roi,
@@ -78,6 +89,7 @@ class BinancePriceTunnel:
                                  base_price,
                                  symbol_tuple,
                                  reverse,
+                                 price_info,
                                  )
         return result
 
@@ -127,22 +139,80 @@ class ExecutePriceTunnel:
         price_tunnel_result.sort()
         return price_tunnel_result
 
-'''
-usdt_array = json.load(open('arbitrage/json/tree/usdt_tree.json'))
-btc_array = json.load(open('arbitrage/json/tree/btc_tree.json'))
-eth_array = json.load(open('arbitrage/json/tree/eth_tree.json'))
-bnb_array = json.load(open('arbitrage/json/tree/bnb_tree.json'))
 
-btc_eth_cross = json.load(open('arbitrage/json/cross/btc_eth_cross.json'))
-btc_bnb_cross = json.load(open('arbitrage/json/cross/btc_bnb_cross.json'))
-eth_bnb_cross = json.load(open('arbitrage/json/cross/eth_bnb_cross.json'))
-btc_eth_bnb_cross = json.load(open('arbitrage/json/cross/btc_eth_bnb_cross.json'))
-btc_eth_usdt_cross = json.load(open('arbitrage/json/cross/btc_eth_usdt_cross.json'))
-btc_bnb_usdt_cross = json.load(open('arbitrage/json/cross/btc_bnb_usdt_cross.json'))
-eth_bnb_usdt_cross = json.load(open('arbitrage/json/cross/eth_bnb_usdt_cross.json'))
-btc_eth_bnb_usdt_cross = json.load(open('arbitrage/json/cross/btc_eth_bnb_usdt_cross.json'))
+class PriceTunnelTrader:
+    PROFIT_THRESHOLD = 0.1
 
-btc_usdt_cross = json.load(open('arbitrage/json/cross/btc_usdt_cross.json'))
-eth_usdt_cross = json.load(open('arbitrage/json/cross/eth_usdt_cross.json'))
-bnb_usdt_cross = json.load(open('arbitrage/json/cross/bnb_usdt_cross.json'))
-'''
+    def __init__(self, tunnels):
+        self.bot = BotSettings.objects.all()[0]
+        self.telegram_bot = telegram.Bot(token=self.bot.telegram_bot.token)
+        self.tech_chat = self.bot.telegram_bot.chat.get(name='Binance_Tech_Vice_Trader_chat')
+        self.info_chat = self.bot.telegram_bot.chat.get(name='Binance_Vice_Trader_chat')
+        self.tunnels = tunnels
+        self.client = Client(self.bot.binance_api.api_key, self.bot.binance_api.api_secret)
+
+
+    def init_trade(self, tunnel):
+
+
+        new_trade = OpenedDeals.objects.create(base_pair=tunnel.symbol_tuple[0],
+                                               middle_pair=tunnel.symbol_tuple[1],
+                                               end_pair=tunnel.symbol_tuple[2],
+
+                                               qty_to_trade=tunnel.qty_final,
+
+                                               base_price=tunnel.price_info[0],
+                                               middle_price=tunnel.price_info[1],
+                                               end_price=tunnel.price_info[2],
+
+                                               is_reverse=tunnel.reverse,
+                                               invest_amount=tunnel.invest_amount,
+                                               expected_profit=tunnel.profit_abs,
+                                               expected_return=tunnel.return_amount,
+                                               expected_roi=tunnel.roi)
+        self.place_base_order(new_trade)
+
+    def place_base_order(self, trade):
+        if not trade.is_base_order_set:
+            self.client.create_order(symbol=trade.base_pair,
+                                     side='BUY',
+                                     type='LIMIT',
+                                     timeInForce='IOC',
+                                     quantity=1,
+                                     price=1)
+
+    def place_middle_order(self):
+        pass
+
+    def place_end_order(self):
+        pass
+
+    def check_profit_trade(self):
+        for tunnel in self.tunnels[::-1]:
+            if tunnel.profit_abs >= self.PROFIT_THRESHOLD:
+                self.inform_telegram(tunnel)
+                self.init_trade(tunnel)
+            #Result already sorted, if no profit, break
+            else:
+                break
+
+
+    def inform_telegram(self, tunnel):
+        message = '''Есть сделка в плюс
+ROI = {0} %
+Ожидаемый профит = {1} $ 
+Схема = {2}
+Инвест = {3} $
+Возврат = {4} $
+'''.format(round(tunnel.roi, 2),
+                   round(tunnel.profit_abs, 2),
+                   tunnel.symbol_tuple,
+                   round(tunnel.invest_amount, 2),
+                   round(tunnel.return_amount, 2))
+        while True:
+            try:
+                self.telegram_bot.send_message(self.tech_chat.chat_id, message)
+            except:
+                continue
+            print(message)
+            break

@@ -5,7 +5,7 @@ from binance.client import Client
 from profiles.models import BinanceKey
 from django.core.management.base import BaseCommand
 from info_data.models import AllRealTimeTicker
-from arbitrage.algo_bot import ExecutePriceTunnel
+from arbitrage.algo_bot import ExecutePriceTunnel, PriceTunnelTrader
 import telegram
 from profiles.models import TelegramBotSettings
 
@@ -61,33 +61,9 @@ class Command(BaseCommand):
 
     def usdt_tunnel_executor(self):
         ept = ExecutePriceTunnel()
-        results = ept.check_usdt_simple()
-        tel_bot_set = TelegramBotSettings.objects.all()
-        telegram_bot = telegram.Bot(token=tel_bot_set[0].token)
-
-        for result in results[::-1]:
-            if result.profit_abs >= 0.5:
-                message = '''Есть сделка в плюс
-ROI = {0} %
-Ожидаемый профит = {1} $ 
-Схема = {2}
-Инвест = {3} $
-Возврат = {4} $
-'''.format(round(result.roi, 2),
-                round(result.profit_abs, 2),
-                result.symbol_tuple,
-                round(result.invest_amount, 2),
-                round(result.return_amount, 2))
-                chat_id = tel_bot_set[0].chat.all()
-                while True:
-                    try:
-                        telegram_bot.send_message(chat_id[0].chat_id, message)
-                        print(message)
-                    except:
-                        continue
-                    break
-            else:
-                break
+        tunnels = ept.check_usdt_simple()
+        trader = PriceTunnelTrader(tunnels)
+        trader.check_profit_trade()
 
     def processs_user_message(self, msg):
         print(msg)
