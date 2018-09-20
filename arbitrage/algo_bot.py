@@ -191,8 +191,6 @@ class PriceTunnelTrader:
         pass
 
     def check_profit_trade(self):
-        for tunnel in self.tunnels:
-            print(tunnel)
         for tunnel in self.tunnels[::-1]:
             if tunnel.profit_abs >= self.PROFIT_THRESHOLD:
                 self.inform_telegram(tunnel)
