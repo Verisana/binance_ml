@@ -60,7 +60,7 @@ class BinancePriceTunnel:
 
         invest_amount = qty_final * base_price
 
-        if not self.bot.stop_qty >= invest_amount:
+        if invest_amount > self.bot.stop_qty and self.bot.stop_qty != 0:
             #should_invest = invest_amount
             #qty_max_available = qty_final
             invest_amount = self.bot.stop_qty
@@ -78,7 +78,10 @@ class BinancePriceTunnel:
         return_amount = self.pay_fee(temp_return)
 
         profit_abs = return_amount - invest_amount
-        roi = ((return_amount - invest_amount) / invest_amount) * 100
+        if invest_amount != 0:
+            roi = ((return_amount - invest_amount) / invest_amount) * 100
+        else:
+            roi = 0
         price_info = (base_price, price_1, price_2)
 
         result = result_template(profit_abs,
@@ -188,6 +191,8 @@ class PriceTunnelTrader:
         pass
 
     def check_profit_trade(self):
+        for tunnel in self.tunnels:
+            print(tunnel)
         for tunnel in self.tunnels[::-1]:
             if tunnel.profit_abs >= self.PROFIT_THRESHOLD:
                 self.inform_telegram(tunnel)
