@@ -45,6 +45,7 @@ telegram_bot.send_message(chat_id[0].chat_id, message)
 nohup python3 /home/leo/binance_ml/manage.py connect_binance --type=all_ticker &
 nohup python3 /home/leo/binance_ml/manage.py connect_binance --type=user_info &
 ps -aux | grep python3
+pkill -f /home/leo/binance_ml/manage.py
 '''
 
 '''
