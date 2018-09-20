@@ -1,3 +1,2 @@
 systemctl restart nginx
 systemctl restart uwsgi
-supervisorctl restart connect_binance_websocket
