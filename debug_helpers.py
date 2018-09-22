@@ -4,6 +4,7 @@ from binance.websockets import BinanceSocketManager
 from info_data.models import AllRealTimeTicker
 from profiles.models import TelegramBotSettings
 import telegram
+from arbitrage.models import ClosedDeals
 
 
 def process_m_message(msg):
