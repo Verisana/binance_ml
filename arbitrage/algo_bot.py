@@ -212,8 +212,8 @@ ROI = {0} %
                    round(tunnel.return_amount, 5))
         while True:
             try:
-                print(tunnel)
-                #self.telegram_bot.send_message(self.tech_chat.chat_id, message)
+                #print(tunnel)
+                self.telegram_bot.send_message(self.tech_chat.chat_id, message)
             except:
                 continue
             break
