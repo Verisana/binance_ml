@@ -3,7 +3,7 @@ from collections import namedtuple
 import json
 from binance.client import Client
 from info_data.models import AllRealTimeTicker
-from arbitrage.models import BotSettings, OpenedDeals
+from arbitrage.models import BotSettings, OpenedDeals, ClosedDeals
 import telegram
 
 
@@ -217,3 +217,15 @@ ROI = {0} %
             except:
                 continue
             break
+
+        ClosedDeals.objects.create(base_price=tunnel.price_info[0],
+                                   middle_price=tunnel.price_info[1],
+                                   end_price=tunnel.price_info[2],
+                                   base_pair=tunnel.symbol_tuple[0],
+                                   middle_pair=tunnel.symbol_tuple[0],
+                                   end_pair=tunnel.symbol_tuple[0],
+                                   invest_amount=tunnel.invest_amount,
+                                   expected_return=tunnel.return_amount,
+                                   expected_roi=tunnel.roi,
+                                   expected_profit=tunnel.profit_abs,
+                                   qty_to_trade=tunnel.qty_final)
