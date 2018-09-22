@@ -206,10 +206,10 @@ ROI = {0} %
 Инвест = {3} $
 Возврат = {4} $
 '''.format(round(tunnel.roi, 2),
-                   round(tunnel.profit_abs, 2),
+                   round(tunnel.profit_abs, 3),
                    tunnel.symbol_tuple,
-                   round(tunnel.invest_amount, 2),
-                   round(tunnel.return_amount, 2))
+                   round(tunnel.invest_amount, 3),
+                   round(tunnel.return_amount, 3))
         while True:
             try:
                 #print(tunnel)
