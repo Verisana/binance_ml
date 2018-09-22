@@ -63,14 +63,16 @@ class ClosedDeals(models.Model):
     middle_pair = models.CharField(max_length=16)
     end_pair = models.CharField(max_length=16)
 
-    invest_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    return_amount = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    invest_amount = models.DecimalField(max_digits=15, decimal_places=5)
+    return_amount = models.DecimalField(max_digits=15, decimal_places=5, blank=True, null=True)
     roi = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True)
-    profit = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    profit = models.DecimalField(max_digits=15, decimal_places=5, blank=True, null=True)
 
-    expected_return = models.DecimalField(max_digits=10, decimal_places=2)
+    expected_return = models.DecimalField(max_digits=15, decimal_places=5)
     expected_roi = models.DecimalField(max_digits=3, decimal_places=2)
-    expected_profit = models.DecimalField(max_digits=10, decimal_places=2)
+    expected_profit = models.DecimalField(max_digits=15, decimal_places=5)
+
+    reverse = models.BooleanField(default=False)
 
     def __str__(self):
-        return 'symbols: {0] - {1} - {2}'.format(self.base_pair, self.middle_pair, self.end_pair)
+        return 'symbols: {0} - {1} - {2}'.format(self.base_pair, self.middle_pair, self.end_pair)
