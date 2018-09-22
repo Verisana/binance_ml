@@ -1,4 +1,5 @@
 from django.db import models
+from decimal import *
 
 
 class BotSettings(models.Model):
@@ -6,6 +7,7 @@ class BotSettings(models.Model):
     binance_api = models.ForeignKey('profiles.BinanceKey', on_delete=models.CASCADE)
     telegram_bot = models.ForeignKey('profiles.TelegramBotSettings', on_delete=models.CASCADE)
     stop_qty = models.IntegerField(null=True, default=0)
+    profit_threshold = models.DecimalField(default=Decimal('0.5'), max_digits=6, decimal_places=3)
     switch_trading = models.BooleanField(default=False)
 
     def __str__(self):

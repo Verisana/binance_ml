@@ -101,8 +101,6 @@ class ExecutePriceTunnel:
     TREE_SYMBOLS = ['BTC', 'ETH', 'BNB', 'USDT']
 
     def __init__(self):
-        #self.bk = BinanceKey.objects.get(name='binance_test')
-        #self.client = Client(self.bk.api_key, self.bk.api_secret)
         self.symbol_info = json.load(open('arbitrage/json/symbol_info.json'))
         self.stepsize_info = json.load(open('arbitrage/json/stepsize_info.json'))
         self.bpt = BinancePriceTunnel()
@@ -144,7 +142,6 @@ class ExecutePriceTunnel:
 
 
 class PriceTunnelTrader:
-    PROFIT_THRESHOLD = 0.1
 
     def __init__(self, tunnels):
         self.bot = BotSettings.objects.all()[0]
@@ -153,6 +150,7 @@ class PriceTunnelTrader:
         self.info_chat = self.bot.telegram_bot.chat.get(name='Binance_Vice_Trader_chat')
         self.tunnels = tunnels
         self.client = Client(self.bot.binance_api.api_key, self.bot.binance_api.api_secret)
+        self.profit_threshold = self.bot.profit_threshold
 
 
     def init_trade(self, tunnel):
@@ -192,9 +190,9 @@ class PriceTunnelTrader:
 
     def check_profit_trade(self):
         for tunnel in self.tunnels[::-1]:
-            if tunnel.profit_abs >= self.PROFIT_THRESHOLD:
+            if tunnel.profit_abs >= self.profit_threshold:
                 self.inform_telegram(tunnel)
-                self.init_trade(tunnel)
+                #self.init_trade(tunnel)
             #Result already sorted, if no profit, break
             else:
                 break
@@ -214,8 +212,8 @@ ROI = {0} %
                    round(tunnel.return_amount, 2))
         while True:
             try:
+                #print(tunnel)
                 self.telegram_bot.send_message(self.tech_chat.chat_id, message)
             except:
                 continue
-            print(message)
             break

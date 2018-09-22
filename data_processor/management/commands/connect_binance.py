@@ -1,4 +1,3 @@
-import json
 from decimal import *
 from binance.websockets import BinanceSocketManager
 from binance.client import Client
@@ -6,8 +5,6 @@ from profiles.models import BinanceKey
 from django.core.management.base import BaseCommand
 from info_data.models import AllRealTimeTicker
 from arbitrage.algo_bot import ExecutePriceTunnel, PriceTunnelTrader
-import telegram
-from profiles.models import TelegramBotSettings
 
 
 class Command(BaseCommand):
