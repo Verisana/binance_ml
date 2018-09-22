@@ -199,6 +199,20 @@ class PriceTunnelTrader:
 
 
     def inform_telegram(self, tunnel):
+
+        deal = ClosedDeals.objects.get_or_create(base_price=tunnel.price_info[0],
+                                                 middle_price=tunnel.price_info[1],
+                                                 end_price=tunnel.price_info[2],
+                                                 base_pair=tunnel.symbol_tuple[0],
+                                                 middle_pair=tunnel.symbol_tuple[1],
+                                                 end_pair=tunnel.symbol_tuple[2],
+                                                 invest_amount=tunnel.invest_amount,
+                                                 expected_return=tunnel.return_amount,
+                                                 expected_roi=tunnel.roi,
+                                                 expected_profit=tunnel.profit_abs,
+                                                 qty_to_trade=tunnel.qty_final,
+                                                 reverse=tunnel.reverse)
+
         message = '''Есть сделка в плюс
 ROI = {0} %
 Ожидаемый профит = {1} $ 
@@ -210,23 +224,11 @@ ROI = {0} %
                    tunnel.symbol_tuple,
                    round(tunnel.invest_amount, 5),
                    round(tunnel.return_amount, 5))
-        while True:
-            try:
-                #print(tunnel)
-                self.telegram_bot.send_message(self.tech_chat.chat_id, message)
-            except:
-                continue
-            break
-
-        ClosedDeals.objects.get_or_create(base_price=tunnel.price_info[0],
-                                          middle_price=tunnel.price_info[1],
-                                          end_price=tunnel.price_info[2],
-                                          base_pair=tunnel.symbol_tuple[0],
-                                          middle_pair=tunnel.symbol_tuple[1],
-                                          end_pair=tunnel.symbol_tuple[2],
-                                          invest_amount=tunnel.invest_amount,
-                                          expected_return=tunnel.return_amount,
-                                          expected_roi=tunnel.roi,
-                                          expected_profit=tunnel.profit_abs,
-                                          qty_to_trade=tunnel.qty_final,
-                                          reverse=tunnel.reverse)
+        if deal[1]:
+            while True:
+                try:
+                    #print(tunnel)
+                    self.telegram_bot.send_message(self.tech_chat.chat_id, message)
+                except:
+                    continue
+                break
