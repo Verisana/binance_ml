@@ -190,7 +190,7 @@ class PriceTunnelTrader:
 
     def check_profit_trade(self):
         for tunnel in self.tunnels[::-1]:
-            if tunnel.profit_abs >= self.profit_threshold:
+            if tunnel.profit_abs > self.profit_threshold:
                 self.inform_telegram(tunnel)
                 #self.init_trade(tunnel)
             #Result already sorted, if no profit, break
