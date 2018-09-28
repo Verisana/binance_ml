@@ -4,7 +4,10 @@ from binance.websockets import BinanceSocketManager
 from info_data.models import AllRealTimeTicker
 from profiles.models import TelegramBotSettings
 import telegram
-from arbitrage.models import ClosedDeals
+from arbitrage.models import Deals
+import json
+from decimal import *
+from arbitrage.algo_bot import ExecutePriceTunnel, PriceTunnelTrader
 
 
 def process_m_message(msg):
@@ -26,10 +29,11 @@ diff_key = bm.start_depth_socket('BNBBTC', process_message)
 #exec(open('arbitrage/additional/tree_cross_forming.py').read())
 #exec(open('arbitrage/additional/db_symbols_init.py').read())
 
-from arbitrage.algo_bot import BinancePriceTunnel, ExecutePriceTunnel
 ept = ExecutePriceTunnel()
 res = ept.check_usdt_simple()
 all = AllRealTimeTicker.objects.all()
+symbol_info_key = json.load(open('arbitrage/json/symbol_info_key.json'))
+symbol_info_list = json.load(open('arbitrage/json/symbol_info_list.json'))
 
 tel_bot_set = TelegramBotSettings.objects.all()
 pp = telegram.utils.request.Request(proxy_url='https://10.0.2.2:1080')
@@ -48,6 +52,8 @@ nohup /home/leo/Env/binance_ml/bin/python3 /home/leo/binance_ml/manage.py connec
 ps -aux | grep manage.py
 pkill -f /home/leo/binance_ml/manage.py
 '''
+#{'symbol': 'ADAUSDT', 'orderId': 26551136, 'clientOrderId': 'zdowRoY9a8cuudfxgQYtmb', 'transactTime': 1537812610251, 'price': '0.08685000', 'origQty': '120.00000000', 'executedQty': '120.00000000', 'cummulativeQuoteQty': '10.42200000', 'status': 'FILLED', 'timeInForce': 'IOC', 'type': 'LIMIT', 'side': 'BUY', 'fills': [{'price': '0.08685000', 'qty': '120.00000000', 'commission': '0.12000000', 'commissionAsset': 'ADA', 'tradeId': 6716086}]}
+#{'symbol': 'ADAUSDT', 'orderId': 26551303, 'clientOrderId': 'BNwY1JCWj8EYtYY5LLpLEi', 'transactTime': 1537812702694, 'price': '0.08686000', 'origQty': '120.00000000', 'executedQty': '120.00000000', 'cummulativeQuoteQty': '10.42440000', 'status': 'FILLED', 'timeInForce': 'IOC', 'type': 'LIMIT', 'side': 'SELL', 'fills': [{'price': '0.08687000', 'qty': '120.00000000', 'commission': '0.01042440', 'commissionAsset': 'USDT', 'tradeId': 6716138}]}
 
 '''
 usdt_array = json.load(open('arbitrage/json/tree/usdt_tree.json'))

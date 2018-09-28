@@ -4,13 +4,12 @@ from binance.client import Client
 
 client = Client('0', '0')
 exchange_info = client.get_exchange_info()
-symbol_info = []
+symbol_info_list = []
 rate_limits = exchange_info['rateLimits']
-stepsize_info = dict()
+symbol_info_key = dict()
 bnb_tree, btc_tree, eth_tree, usdt_tree = [], [], [], []
 
 for info in exchange_info['symbols']:
-    stepsize_info[info['symbol']] = info['filters'][1]['minQty']
     if info['status'] == 'TRADING':
         if 'BNB' in info['symbol'][-4:]:
             bnb_tree.append(info['symbol'])
@@ -20,12 +19,13 @@ for info in exchange_info['symbols']:
             eth_tree.append(info['symbol'])
         else:
             usdt_tree.append(info['symbol'])
-        symbol_info.append(info)
+        symbol_info_list.append(info)
+        symbol_info_key[info['symbol']] = info
 
-with open('arbitrage/json/symbol_info.json', 'w') as outfile:
-    json.dump(symbol_info, outfile)
-with open('arbitrage/json/stepsize_info.json', 'w') as outfile:
-    json.dump(stepsize_info, outfile)
+with open('arbitrage/json/symbol_info_list.json', 'w') as outfile:
+    json.dump(symbol_info_list, outfile)
+with open('arbitrage/json/symbol_info_key.json', 'w') as outfile:
+    json.dump(symbol_info_key, outfile)
 with open('arbitrage/json/rate_limits.json', 'w') as outfile:
     json.dump(rate_limits, outfile)
 

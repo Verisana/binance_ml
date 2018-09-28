@@ -1,7 +1,8 @@
+import json
 from decimal import *
 from binance.websockets import BinanceSocketManager
 from binance.client import Client
-from profiles.models import BinanceKey
+from arbitrage.models import BotSettings
 from django.core.management.base import BaseCommand
 from info_data.models import AllRealTimeTicker
 from arbitrage.algo_bot import ExecutePriceTunnel, PriceTunnelTrader
@@ -10,8 +11,8 @@ from arbitrage.algo_bot import ExecutePriceTunnel, PriceTunnelTrader
 class Command(BaseCommand):
     help = 'Open websocket connection to binance'
 
-    bk = BinanceKey.objects.get(name='binance_test')
-    client = Client(bk.api_key, bk.api_secret)
+    bot = BotSettings.objects.all()[0]
+    client = Client(bot.binance_api.api_key, bot.binance_api.api_secret)
     bm = BinanceSocketManager(client)
 
     def add_arguments(self, parser):
@@ -64,6 +65,12 @@ class Command(BaseCommand):
 
     def processs_user_message(self, msg):
         print(msg)
+        if msg['e'] == 'outboundAccountInfo':
+            for balance in msg['B']:
+                if balance['a'] == 'USDT':
+                    self.bot.balance = Decimal(balance['f'])
+                    self.bot.save()
+                    break
 
     def process_ticker_message(self, msg):
         print(msg)

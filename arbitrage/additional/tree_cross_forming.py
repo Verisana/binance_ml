@@ -1,8 +1,8 @@
 import json
 
 
-symbol_info = json.load(open('arbitrage/json/symbol_info.json'))
-stepsize_info = json.load(open('arbitrage/json/stepsize_info.json'))
+symbol_info_list = json.load(open('arbitrage/json/symbol_info_list.json'))
+symbol_info_key = json.load(open('arbitrage/json/symbol_info_key.json'))
 usdt_array = json.load(open('arbitrage/json/tree/usdt_tree.json'))
 btc_array = json.load(open('arbitrage/json/tree/btc_tree.json'))
 eth_array = json.load(open('arbitrage/json/tree/eth_tree.json'))

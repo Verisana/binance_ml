@@ -1,26 +1,49 @@
 from decimal import *
+import datetime
 from collections import namedtuple
 import json
+from django.utils import timezone
 from binance.client import Client
 from info_data.models import AllRealTimeTicker
-from arbitrage.models import BotSettings, OpenedDeals, ClosedDeals
+from arbitrage.models import BotSettings, Deals
 import telegram
 
 
 class BinancePriceTunnel:
     def __init__(self):
         self.bot = BotSettings.objects.all()[0]
+        self.symbol_info_key = json.load(open('arbitrage/json/symbol_info_key.json'))
+        self.fee_rate = Decimal('0.1') / 100
 
-    def pay_fee(self, amount):
-        fee = Decimal('0.001')
-        amount = Decimal(amount)
-        return amount - (amount*fee)
 
-    def buy_action(self, bid_price, quantity):
-        return quantity / bid_price
+    def deduct_fee(self, qty):
+        qty = Decimal(qty)
+        return qty - (qty * self.fee_rate)
 
-    def sell_action(self, ask_price, quantity):
-        return quantity * ask_price
+    def buy_action(self, ask_price, quantity):
+        return quantity / ask_price
+
+    def sell_action(self, bid_price, quantity):
+        return quantity * bid_price
+
+    def normalize_lot_size(self, key, qty):
+        stepsize = Decimal(self.symbol_info_key[key]['filters'][1]['stepSize'])
+        return qty.quantize(stepsize, rounding=ROUND_DOWN)
+
+    def calculate_return(self, qty, price_1, price_2, symbol_tuple, reverse):
+        qty = self.deduct_fee(qty)
+        qty = self.normalize_lot_size(symbol_tuple[1], qty)
+        if not reverse:
+            middle_qty = self.sell_action(price_1, qty)
+        else:
+            middle_qty = self.buy_action(price_1, qty)
+
+        middle_qty = self.normalize_lot_size(symbol_tuple[1], middle_qty)
+        middle_qty = self.deduct_fee(middle_qty)
+        middle_qty = self.normalize_lot_size(symbol_tuple[2], middle_qty)
+        return_amount = self.sell_action(price_2, middle_qty)
+        return_amount = self.deduct_fee(return_amount)
+        return return_amount
 
     def check_usdt_tunnel(self, base_key, key_1, key_2, orders_dict, reverse):
         # noinspection PyTypeChecker
@@ -33,6 +56,7 @@ class BinancePriceTunnel:
                                                 'symbol_tuple',
                                                 'reverse',
                                                 'price_info',
+                                                'should_info',
                                                 ])
         symbol_tuple = (base_key, key_1, key_2)
         #askPrice - red - lowest_buy
@@ -58,24 +82,22 @@ class BinancePriceTunnel:
             qty_final = min(qty_temp,
                             orders_dict[key_2].best_bid_qty) * price_1
 
+        qty_final = self.normalize_lot_size(base_key, qty_final)
         invest_amount = qty_final * base_price
 
         if invest_amount > self.bot.stop_qty and self.bot.stop_qty != 0:
-            #should_invest = invest_amount
-            #qty_max_available = qty_final
+            should_invest = invest_amount
+            qty_max_available = qty_final
+            should_return = self.calculate_return(qty_max_available, price_1, price_2, symbol_tuple, reverse)
             invest_amount = self.bot.stop_qty
             qty_final = invest_amount / base_price
-
-        temp_return = self.pay_fee(qty_final)
-
-        if not reverse:
-            temp_return = self.sell_action(price_1, temp_return)
+            qty_final = self.normalize_lot_size(base_key, qty_final)
+            should_profit = should_return - should_invest
+            should_info = (should_invest, should_return, should_profit)
         else:
-            temp_return = self.buy_action(price_1, temp_return)
+            should_info = ()
 
-        temp_return = self.pay_fee(temp_return)
-        temp_return = self.sell_action(price_2, temp_return)
-        return_amount = self.pay_fee(temp_return)
+        return_amount = self.calculate_return(qty_final, price_1, price_2, symbol_tuple, reverse)
 
         profit_abs = return_amount - invest_amount
         if invest_amount != 0:
@@ -83,7 +105,6 @@ class BinancePriceTunnel:
         else:
             roi = 0
         price_info = (base_price, price_1, price_2)
-
         result = result_template(profit_abs,
                                  roi,
                                  invest_amount,
@@ -93,6 +114,7 @@ class BinancePriceTunnel:
                                  symbol_tuple,
                                  reverse,
                                  price_info,
+                                 should_info,
                                  )
         return result
 
@@ -101,39 +123,46 @@ class ExecutePriceTunnel:
     TREE_SYMBOLS = ['BTC', 'ETH', 'BNB', 'USDT']
 
     def __init__(self):
-        self.symbol_info = json.load(open('arbitrage/json/symbol_info.json'))
-        self.stepsize_info = json.load(open('arbitrage/json/stepsize_info.json'))
+        self.symbol_info_list = json.load(open('arbitrage/json/symbol_info_list.json'))
+        self.symbol_info_key = json.load(open('arbitrage/json/symbol_info_key.json'))
         self.bpt = BinancePriceTunnel()
+        self.symbols_usdt = AllRealTimeTicker.objects.filter(symbol_tree='USDT')
+        self.symbols_except_usdt = AllRealTimeTicker.objects.exclude(symbol_tree='USDT')
+        self.usdt_list = []
+        for i in self.symbols_usdt:
+            self.usdt_list.append(i.symbol)
 
+    def check_key_2_validity(self, symbol, base):
+        if symbol in self.usdt_list and base not in symbol:
+            return True
+        else:
+            return False
 
     def check_usdt_simple(self):
         orders_dict = {}
         symbols = AllRealTimeTicker.objects.all()
-        symbols_except_usdt = AllRealTimeTicker.objects.exclude(symbol_tree='USDT')
         for i in symbols:
             orders_dict[i.symbol] = i
         price_tunnel_result = []
-        symbols_usdt = AllRealTimeTicker.objects.filter(symbol_tree='USDT')
-        usdt_list = []
-        for i in symbols_usdt:
-            usdt_list.append(i.symbol)
 
-        for symbol_usdt in symbols_usdt:
-            for symbol_cross in symbols_except_usdt:
+        for symbol_usdt in self.symbols_usdt:
+            for symbol_cross in self.symbols_except_usdt:
                 base = symbol_usdt.symbol
-
-                if base[0:-4] in self.TREE_SYMBOLS and base[0:-4] in symbol_cross.symbol:
+                base_baseasset = self.symbol_info_key[base]['baseAsset']
+                if base_baseasset in self.TREE_SYMBOLS and base_baseasset in symbol_cross.symbol:
                     key_1 = symbol_cross.symbol
-                    key_2 = symbol_cross.symbol.replace(base[0:-4], '') + 'USDT'
-                    if key_2 in usdt_list:
-                        if key_2[0:-4] not in self.TREE_SYMBOLS:
-                            price_tunnel_result.append(self.bpt.check_usdt_tunnel(base, key_1, key_2, orders_dict, reverse=True))
-                        else:
+                    if base_baseasset == self.symbol_info_key[key_1]['baseAsset']:
+                        key_2 = self.symbol_info_key[key_1]['quoteAsset'] + 'USDT'
+                        if self.check_key_2_validity(key_2, base_baseasset):
                             price_tunnel_result.append(self.bpt.check_usdt_tunnel(base, key_1, key_2, orders_dict, reverse=False))
-                elif base[0:-4] in symbol_cross.symbol:
+                    else:
+                        key_2 = self.symbol_info_key[key_1]['baseAsset'] + 'USDT'
+                        if self.check_key_2_validity(key_2, base_baseasset):
+                            price_tunnel_result.append(self.bpt.check_usdt_tunnel(base, key_1, key_2, orders_dict, reverse=True))
+                elif base_baseasset in symbol_cross.symbol:
                     key_1 = symbol_cross.symbol
-                    key_2 = symbol_cross.symbol.replace(base[0:-4], '') + 'USDT'
-                    if key_2 in usdt_list:
+                    key_2 = self.symbol_info_key[key_1]['baseAsset'] + 'USDT'
+                    if self.check_key_2_validity(key_2, base_baseasset):
                         price_tunnel_result.append(self.bpt.check_usdt_tunnel(base, key_1, key_2, orders_dict, reverse=False))
 
 
@@ -154,33 +183,36 @@ class PriceTunnelTrader:
 
 
     def init_trade(self, tunnel):
+        new_trade = Deals.objects.create(base_pair=tunnel.symbol_tuple[0],
+                                         middle_pair=tunnel.symbol_tuple[1],
+                                         end_pair=tunnel.symbol_tuple[2],
 
+                                         init_qty=tunnel.qty_final,
 
-        new_trade = OpenedDeals.objects.create(base_pair=tunnel.symbol_tuple[0],
-                                               middle_pair=tunnel.symbol_tuple[1],
-                                               end_pair=tunnel.symbol_tuple[2],
+                                         expected_base_price=tunnel.price_info[0],
+                                         expected_middle_price=tunnel.price_info[1],
+                                         expected_end_price=tunnel.price_info[2],
 
-                                               qty_to_trade=tunnel.qty_final,
-
-                                               base_price=tunnel.price_info[0],
-                                               middle_price=tunnel.price_info[1],
-                                               end_price=tunnel.price_info[2],
-
-                                               is_reverse=tunnel.reverse,
-                                               invest_amount=tunnel.invest_amount,
-                                               expected_profit=tunnel.profit_abs,
-                                               expected_return=tunnel.return_amount,
-                                               expected_roi=tunnel.roi)
+                                         reverse=tunnel.reverse,
+                                         expected_invest_amount=tunnel.invest_amount,
+                                         expected_profit=tunnel.profit_abs,
+                                         expected_return=tunnel.return_amount,
+                                         expected_roi=tunnel.roi)
         self.place_base_order(new_trade)
 
     def place_base_order(self, trade):
-        if not trade.is_base_order_set:
-            self.client.create_order(symbol=trade.base_pair,
-                                     side='BUY',
-                                     type='LIMIT',
-                                     timeInForce='IOC',
-                                     quantity=1,
-                                     price=1)
+        order = self.client.create_order(symbol=trade.base_pair,
+                                         side='BUY',
+                                         type='LIMIT',
+                                         timeInForce='IOC',
+                                         quantity=1,
+                                         price=1)
+        if order['status'] == 'FILLED':
+            trade.base_order_id = order['clientOrderId']
+            trade.invest = order['cummulativeQuoteQty']
+            trade.datetime_base_pair = datetime.datetime.utcfromtimestamp(int(order['transactTime'])/1000).replace(tzinfo=timezone.get_current_timezone())
+
+            trade.save()
 
     def place_middle_order(self):
         pass
@@ -189,9 +221,12 @@ class PriceTunnelTrader:
         pass
 
     def check_profit_trade(self):
+        for i in self.tunnels[::-1]:
+            print(i)
         for tunnel in self.tunnels[::-1]:
             if tunnel.profit_abs > self.profit_threshold:
-                self.inform_telegram(tunnel)
+                pass
+                #self.inform_telegram(tunnel)
                 #self.init_trade(tunnel)
             #Result already sorted, if no profit, break
             else:
@@ -199,19 +234,18 @@ class PriceTunnelTrader:
 
 
     def inform_telegram(self, tunnel):
-
-        deal = ClosedDeals.objects.get_or_create(base_price=tunnel.price_info[0],
-                                                 middle_price=tunnel.price_info[1],
-                                                 end_price=tunnel.price_info[2],
-                                                 base_pair=tunnel.symbol_tuple[0],
-                                                 middle_pair=tunnel.symbol_tuple[1],
-                                                 end_pair=tunnel.symbol_tuple[2],
-                                                 invest_amount=tunnel.invest_amount,
-                                                 expected_return=tunnel.return_amount,
-                                                 expected_roi=tunnel.roi,
-                                                 expected_profit=tunnel.profit_abs,
-                                                 qty_to_trade=tunnel.qty_final,
-                                                 reverse=tunnel.reverse)
+        deal = Deals.objects.get_or_create(base_price=tunnel.price_info[0],
+                                           middle_price=tunnel.price_info[1],
+                                           end_price=tunnel.price_info[2],
+                                           base_pair=tunnel.symbol_tuple[0],
+                                           middle_pair=tunnel.symbol_tuple[1],
+                                           end_pair=tunnel.symbol_tuple[2],
+                                           invest_amount=tunnel.invest_amount,
+                                           expected_return=tunnel.return_amount,
+                                           expected_roi=tunnel.roi,
+                                           expected_profit=tunnel.profit_abs,
+                                           qty_to_trade=tunnel.qty_final,
+                                           reverse=tunnel.reverse)
 
         message = '''Есть сделка в плюс
 ROI = {0} %

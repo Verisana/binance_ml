@@ -3,8 +3,8 @@ import json
 
 
 def create_all_symbols():
-    symbol_info = json.load(open('arbitrage/json/symbol_info.json'))
-    for symbol in symbol_info:
+    symbol_info_list = json.load(open('arbitrage/json/symbol_info_list.json'))
+    for symbol in symbol_info_list:
         if 'BTC' in symbol['symbol'][-4:]:
             symbol_tree = symbol['symbol'][-3:]
         elif 'ETH' in symbol['symbol'][-4:]:
