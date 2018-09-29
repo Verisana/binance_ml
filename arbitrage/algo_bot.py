@@ -58,6 +58,7 @@ class BinancePriceTunnel:
                                                 'price_info',
                                                 'should_info',
                                                 ])
+        result = result_template(0, 0, 0, 0, 0, 0, (), reverse, (), ())
         symbol_tuple = (base_key, key_1, key_2)
         #askPrice - red - lowest_buy
         #bidPrice - green - highest_sell
@@ -68,6 +69,9 @@ class BinancePriceTunnel:
         else:
             price_1 = orders_dict[key_1].best_ask_pr
         price_2 = orders_dict[key_2].best_bid_pr
+
+        if not base_price or not price_1 or not price_2:
+            return result
 
         if not reverse:
             qty_temp = min(orders_dict[base_key].best_ask_qty,
@@ -83,6 +87,10 @@ class BinancePriceTunnel:
                             orders_dict[key_2].best_bid_qty) * price_1
 
         qty_final = self.normalize_lot_size(base_key, qty_final)
+
+        if not qty_final:
+            return result
+
         invest_amount = qty_final * base_price
 
         if invest_amount > self.bot.stop_qty and self.bot.stop_qty != 0:
@@ -95,7 +103,7 @@ class BinancePriceTunnel:
             should_profit = should_return - should_invest
             should_info = (should_invest, should_return, should_profit)
         else:
-            should_info = ()
+            should_info = (0, 0, 0)
 
         return_amount = self.calculate_return(qty_final, price_1, price_2, symbol_tuple, reverse)
 
@@ -220,32 +228,78 @@ class PriceTunnelTrader:
     def place_end_order(self):
         pass
 
+    def _is_repeated_deal(self, symbol_tuple, price_tuple, init_qty):
+        now = timezone.now()
+        deals = Deals.objects.filter(date_open__range=(now - timezone.timedelta(minutes=1), now))
+        init_hash = hash(
+                         (
+                            symbol_tuple[0],
+                            symbol_tuple[1],
+                            symbol_tuple[2],
+
+                            price_tuple[0],
+                            price_tuple[1],
+                            price_tuple[2],
+
+                            init_qty,
+                         )
+                        )
+        if deals:
+            for deal in deals:
+                check_hash = hash(
+                    (
+                        deal.base_pair,
+                        deal.middle_pair,
+                        deal.end_pair,
+
+                        deal.base_price,
+                        deal.middle_price,
+                        deal.end_price,
+
+                        deal.init_qty,
+                    )
+
+                )
+                if check_hash == init_hash:
+                    return True
+        return False
+
     def check_profit_trade(self):
-        for i in self.tunnels[::-1]:
-            print(i)
         for tunnel in self.tunnels[::-1]:
-            if tunnel.profit_abs > self.profit_threshold:
-                pass
-                #self.inform_telegram(tunnel)
+            repeated_trade = self._is_repeated_deal(tunnel.symbol_tuple, tunnel.price_info, tunnel.qty_final)
+            if tunnel.profit_abs > self.profit_threshold and tunnel.invest_amount > 10 and not repeated_trade:
+                self.inform_telegram(tunnel)
                 #self.init_trade(tunnel)
             #Result already sorted, if no profit, break
+            elif tunnel.invest_amount < 10:
+                continue
             else:
                 break
 
 
     def inform_telegram(self, tunnel):
-        deal = Deals.objects.get_or_create(base_price=tunnel.price_info[0],
-                                           middle_price=tunnel.price_info[1],
-                                           end_price=tunnel.price_info[2],
-                                           base_pair=tunnel.symbol_tuple[0],
-                                           middle_pair=tunnel.symbol_tuple[1],
-                                           end_pair=tunnel.symbol_tuple[2],
-                                           invest_amount=tunnel.invest_amount,
-                                           expected_return=tunnel.return_amount,
-                                           expected_roi=tunnel.roi,
-                                           expected_profit=tunnel.profit_abs,
-                                           qty_to_trade=tunnel.qty_final,
-                                           reverse=tunnel.reverse)
+        deal = Deals.objects.create(
+                                            base_pair=tunnel.symbol_tuple[0],
+                                            middle_pair=tunnel.symbol_tuple[1],
+                                            end_pair=tunnel.symbol_tuple[2],
+
+                                            init_qty=tunnel.qty_final,
+
+                                            expected_base_price=tunnel.price_info[0],
+                                            expected_middle_price=tunnel.price_info[1],
+                                            expected_end_price=tunnel.price_info[2],
+
+                                            reverse=tunnel.reverse,
+
+                                            expected_invest=tunnel.invest_amount,
+                                            expected_return=tunnel.return_amount,
+                                            expected_roi=tunnel.roi,
+                                            expected_profit=tunnel.profit_abs,
+
+                                            hypothetical_invest=tunnel.should_info[0],
+                                            hypothetical_return=tunnel.should_info[1],
+                                            hypothetical_profit=tunnel.should_info[2],
+        )
 
         message = '''Есть сделка в плюс
 ROI = {0} %
@@ -254,15 +308,14 @@ ROI = {0} %
 Инвест = {3} $
 Возврат = {4} $
 '''.format(round(tunnel.roi, 2),
-                   round(tunnel.profit_abs, 5),
+                   round(tunnel.profit_abs, 8),
                    tunnel.symbol_tuple,
-                   round(tunnel.invest_amount, 5),
-                   round(tunnel.return_amount, 5))
-        if deal[1]:
-            while True:
-                try:
-                    #print(tunnel)
-                    self.telegram_bot.send_message(self.tech_chat.chat_id, message)
-                except:
-                    continue
-                break
+                   round(tunnel.invest_amount, 8),
+                   round(tunnel.return_amount, 8))
+        while True:
+            try:
+                print(tunnel)
+                #self.telegram_bot.send_message(self.tech_chat.chat_id, message)
+            except:
+                continue
+            break

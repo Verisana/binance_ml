@@ -52,6 +52,7 @@ nohup /home/leo/Env/binance_ml/bin/python3 /home/leo/binance_ml/manage.py connec
 ps -aux | grep manage.py
 pkill -f /home/leo/binance_ml/manage.py
 '''
+
 #{'symbol': 'ADAUSDT', 'orderId': 26551136, 'clientOrderId': 'zdowRoY9a8cuudfxgQYtmb', 'transactTime': 1537812610251, 'price': '0.08685000', 'origQty': '120.00000000', 'executedQty': '120.00000000', 'cummulativeQuoteQty': '10.42200000', 'status': 'FILLED', 'timeInForce': 'IOC', 'type': 'LIMIT', 'side': 'BUY', 'fills': [{'price': '0.08685000', 'qty': '120.00000000', 'commission': '0.12000000', 'commissionAsset': 'ADA', 'tradeId': 6716086}]}
 #{'symbol': 'ADAUSDT', 'orderId': 26551303, 'clientOrderId': 'BNwY1JCWj8EYtYY5LLpLEi', 'transactTime': 1537812702694, 'price': '0.08686000', 'origQty': '120.00000000', 'executedQty': '120.00000000', 'cummulativeQuoteQty': '10.42440000', 'status': 'FILLED', 'timeInForce': 'IOC', 'type': 'LIMIT', 'side': 'SELL', 'fills': [{'price': '0.08687000', 'qty': '120.00000000', 'commission': '0.01042440', 'commissionAsset': 'USDT', 'tradeId': 6716138}]}
 
