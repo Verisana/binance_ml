@@ -271,7 +271,7 @@ class PriceTunnelTrader:
                 self.inform_telegram(tunnel)
                 #self.init_trade(tunnel)
             #Result already sorted, if no profit, break
-            elif tunnel.invest_amount < 10:
+            elif tunnel.profit_abs > self.profit_threshold:
                 continue
             else:
                 break
